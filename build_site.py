@@ -30,11 +30,13 @@ def P(t, alt=""):
 CENTRAL = "5531995224782"; CENTRAL_TXT = "(31) 99522-4782"   # número já usado pela loja de Coronel Fabriciano
 IGU = "https://www.instagram.com/maisgessodistribuidora"
 CONTATO = dict(email=None, cnpj=None)  # pendentes
+HORARIO = "Segunda a quinta, 7h às 17h · Sexta, 7h às 16h"   # confirmado pelo cliente em 19/10/2026, igual nas 3 lojas
+HORARIO_LD = ["Mo-Th 07:00-17:00", "Fr 07:00-16:00"]
 LOJAS = [
   dict(id="fabriciano", n="Coronel Fabriciano", rua="Av. Presidente Tancredo de Almeida Neves, 3664", bairro="Caladinho",
-       wa=CENTRAL, wa_proprio=True, horario=None, geo=[-19.52, -42.62]),
-  dict(id="ipatinga", n="Ipatinga", rua=None, bairro=None, wa=CENTRAL, wa_proprio=False, horario=None, geo=[-19.47, -42.54]),
-  dict(id="bh", n="Belo Horizonte", rua=None, bairro=None, wa=CENTRAL, wa_proprio=False, horario=None, geo=[-19.92, -43.94]),
+       wa=CENTRAL, wa_proprio=True, tel=None, horario=HORARIO, geo=[-19.52, -42.62]),
+  dict(id="ipatinga", n="Ipatinga", rua=None, bairro=None, wa=CENTRAL, wa_proprio=False, tel="(31) 2542-2287", horario=HORARIO, geo=[-19.47, -42.54]),
+  dict(id="bh", n="Belo Horizonte", rua=None, bairro=None, wa=CENTRAL, wa_proprio=False, tel=None, horario=HORARIO, geo=[-19.92, -43.94]),
 ]
 for s in LOJAS:
   s["ok"] = bool(s["rua"])
@@ -43,6 +45,7 @@ for s in LOJAS:
   s["addr_html"] = esc(s["addr"]) if s["ok"] else P(f'endereço da loja de {s["n"]}', "Endereço e atendimento pelo WhatsApp")
   s["h_pend"] = "horário de funcionamento" if PEND else "Horário: consulte pelo WhatsApp"
   s["h_html"] = esc(s["horario"]) if s["horario"] else P("horário de funcionamento", "Horário: consulte pelo WhatsApp")
+  s["tel_html"] = f'Telefone: {esc(s["tel"])}' if s["tel"] else ""
   s["c"] = {"fabriciano": "Fabriciano", "ipatinga": "Ipatinga", "bh": "BH"}[s["id"]]
   busca = "Mais Gesso Distribuidora " + (s["addr"] if s["ok"] else s["n"] + " MG")
   # Sem endereço confirmado o mapa mostra só a cidade, para não apontar um local errado.
@@ -103,6 +106,8 @@ def ld_store(s):
      "address":{"@type":"PostalAddress","addressLocality":s["n"],"addressRegion":"MG","addressCountry":"BR"}}
   if s["ok"]: d["address"]["streetAddress"]=f"{s['rua']} – {s['bairro']}"
   if s["wa_proprio"]: d["telephone"]="+"+s["wa"]
+  elif s["tel"]: d["telephone"]="+55"+"".join(ch for ch in s["tel"] if ch.isdigit())
+  if s["horario"]: d["openingHours"]=HORARIO_LD
   if DOMINIO: d["url"]=f"{DOMINIO}/#loja-{s['id']}"; d["image"]=f"{DOMINIO}/assets/og-image.png"
   return d
 ORG={"@type":"Organization","@id":ref("org"),"name":"Mais Gesso Distribuidora","slogan":"Drywall no ponto, obra no prazo.","sameAs":[IGU],
@@ -145,7 +150,7 @@ def footer(root=""):
   cnpj = (f'<p>CNPJ: {esc(CONTATO["cnpj"]) if CONTATO["cnpj"] else P("CNPJ")}</p>') if (CONTATO["cnpj"] or PEND) else ""
   logo_pend = f'<p>{P("logo oficial em vetor — marca acima recriada a partir do brand kit")}</p>' if PEND else ""
   return f'''<footer class="foot"><div class="fg"><div>{LOGO}{logo_pend}<p>Distribuidora de materiais para construção a seco: gesso, drywall, piso vinílico, parafusos e fitas. Entregamos para todo o Brasil.</p><a class="iglink" href="{IGU}" rel="noopener">{IG} @maisgessodistribuidora</a></div>
-<div><h2>Lojas</h2>{"".join(f'<p><b>{esc(s["n"])}</b><br>{s["addr_html"]}<br>{s["h_html"]}</p>' for s in LOJAS)}</div><div><h2>Produtos</h2>{"".join(f'<a href="{root}produtos/{c[0]}.html">{c[1]}</a>' for c in C)}</div>
+<div><h2>Lojas</h2>{"".join(f'<p><b>{esc(s["n"])}</b><br>{s["addr_html"]}<br>{s["h_html"]}{"<br>"+s["tel_html"] if s["tel_html"] else ""}</p>' for s in LOJAS)}</div><div><h2>Produtos</h2>{"".join(f'<a href="{root}produtos/{c[0]}.html">{c[1]}</a>' for c in C)}</div>
 <div><h2>Contato</h2><p>WhatsApp: <a href="https://wa.me/{CENTRAL}" rel="noopener">{CENTRAL_TXT}</a></p>{email}{cnpj}</div></div><p class="copy">© 2026 Mais Gesso Distribuidora · Coronel Fabriciano · Ipatinga · Belo Horizonte – MG</p></footer>'''
 def prod_cards(c,h="h4"):
   def ph(p):
@@ -199,7 +204,7 @@ idx=head("Mais Gesso Distribuidora | Gesso, Drywall e Piso Vinílico em Coronel 
 {"".join(f'<div class="tabp" role="tabpanel" id="painel-{c[0]}" aria-labelledby="tab-{c[0]}" data-panel="{c[0]}"{"" if i==0 else " hidden"}><div class="ch"><div><h3 class="ct">{c[1]}</h3><p>{c[2]}</p></div><a class="ghost dk" href="produtos/{c[0]}.html">Ver página de {c[1]} {A("→")}</a></div><div class="grid">{prod_cards(c)}</div></div>' for i,c in enumerate(C))}</section>
 <section class="br" id="entrega" aria-labelledby="entrega-t"><div class="bw">{ic(TRUCK,80,"#fff")}<div><h2 id="entrega-t">Entregamos para<br>todo o Brasil</h2><p>Longe das lojas? Sem problema. Mande a lista e o CEP da obra: o frete sai no orçamento, para qualquer estado.</p><a class="big wht" href="{wa("Coronel Fabriciano","Preciso de entrega para outro estado. CEP: ")}" rel="noopener">{WA} Consultar frete</a></div></div>
 <ul class="perks"><li>{ic(TRUCK,22)} Entrega na obra</li><li>{ic(BOX,22)} Pedidos de volume</li><li>{ic(MAPI,22)} Todo o território nacional</li><li>{ic(CLOCK,22)} Prazo informado no orçamento</li></ul></section><div class="hz" aria-hidden="true"></div>
-<section id="lojas" aria-labelledby="lojas-t"><h2 class="s" id="lojas-t">Nossas <span>lojas</span></h2><div class="stores">{"".join(f'<article class="store" id="loja-{s["id"]}">{store_map(s)}<div class="sb"><h3>{esc(s["n"])}</h3><p>{s["addr_html"]}</p><p class="tiny">{s["h_html"]}</p>{"" if not s["wa_pend"] else f'<p class="warn">{A("⚠")} {P(s["wa_pend"])}</p>'}<div class="row"><a class="ghost dk" href="{s["lnk"]}" rel="noopener">Como chegar</a><a class="ghost wa" href="{wa_loja(s)}" rel="noopener">{WA} WhatsApp</a></div></div></article>' for s in LOJAS)}</div></section>
+<section id="lojas" aria-labelledby="lojas-t"><h2 class="s" id="lojas-t">Nossas <span>lojas</span></h2><div class="stores">{"".join(f'<article class="store" id="loja-{s["id"]}">{store_map(s)}<div class="sb"><h3>{esc(s["n"])}</h3><p>{s["addr_html"]}</p><p class="tiny">{s["h_html"]}</p>{f'<p class="tiny">{s["tel_html"]}</p>' if s["tel_html"] else ""}{"" if not s["wa_pend"] else f'<p class="warn">{A("⚠")} {P(s["wa_pend"])}</p>'}<div class="row"><a class="ghost dk" href="{s["lnk"]}" rel="noopener">Como chegar</a><a class="ghost wa" href="{wa_loja(s)}" rel="noopener">{WA} WhatsApp</a></div></div></article>' for s in LOJAS)}</div></section>
 <section id="instagram" aria-labelledby="ig-t"><h2 class="s" id="ig-t">Mais Gesso <span>Resolve</span></h2><p class="sp">Dica rápida de obra, toda semana no @maisgessodistribuidora.</p>{midia()}<a class="ghost big2" href="{IGU}" rel="noopener">{IG} Seguir no Instagram</a></section>
 <section id="faq" aria-labelledby="faq-t"><h2 class="s" id="faq-t">Perguntas <span>frequentes</span></h2><div class="faq">{"".join(f'<details><summary>{esc(q)}</summary><p>{a}</p></details>' for q,a,_ in FAQ)}</div></section></main>'''+page_end("")
 write("index.html", idx)
