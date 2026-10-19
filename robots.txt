@@ -1,0 +1,5 @@
+# Prévia: domínio ainda não publicado. Todas as páginas têm <meta name="robots" content="noindex,follow">.
+# O rastreio fica liberado para que os buscadores leiam esse noindex. Sem sitemap até haver domínio.
+# Ao publicar: MG_DOMINIO=https://... MG_INDEXAR=1 python3 build_site.py
+User-agent: *
+Allow: /
